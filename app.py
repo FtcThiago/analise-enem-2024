@@ -84,16 +84,36 @@ df_filtrado_global = df[
     (df['tp_dependencia_adm_esc'].isin(dep_sel))
 ]
 # Filtro 4: Faixa por NOTAS
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🎯 Filtro de Desempenho")
 
-faixas_disponiveis = ['0-400', '400-500', '500-600', '600-700', '700-800', '800+', 'Sem Nota']
-faixa_sel = st.sidebar.multiselect("4. Faixa de Desempenho:", faixas_disponiveis, default=['0-400', '400-500', '500-600', '600-700', '700-800', '800+'])
+# Dicionário para deixar os nomes amigáveis no menu
+dicionario_notas = {
+    "Média Geral (5 Notas)": "nota_media_5_notas",
+    "Matemática": "nota_mt_matematica",
+    "Ciências da Natureza": "nota_cn_ciencias_da_natureza",
+    "Ciências Humanas": "nota_ch_ciencias_humanas",
+    "Linguagens": "nota_lc_linguagens_e_codigos",
+    "Redação": "nota_redacao"
+}
+
+materia_filtro = st.sidebar.selectbox("4. Filtrar notas baseado em:", list(dicionario_notas.keys()))
+coluna_filtro = dicionario_notas[materia_filtro]
+
+# O slider (barra deslizante) permite escolher o mínimo e máximo de qualquer matéria
+nota_min, nota_max = st.sidebar.slider(
+    f"5. Faixa de Notas em {materia_filtro}:", 
+    min_value=0.0, max_value=1000.0, 
+    value=(0.0, 1000.0), step=10.0
+)
 
 # Aplicando todos os filtros
 df_filtrado_global = df[
     (df['regiao_nome_prova'].isin(regiao_sel)) &
     (df['sg_uf_prova'].isin(uf_selecionada)) &
     (df['tp_dependencia_adm_esc'].isin(dep_sel)) &
-    (df['faixa_nota_media'].isin(faixa_sel))
+    (df[coluna_filtro] >= nota_min) &
+    (df[coluna_filtro] <= nota_max)
 ]
 
 # ==========================================
