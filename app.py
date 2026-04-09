@@ -40,24 +40,15 @@ st.markdown("""
 # 3. Carregamento dos Dados
 @st.cache_data
 def carregar_dados():
-    # 3. Carregar a tabela do ENEM 2024
-    query_enem = "SELECT * FROM ed_enem_2024_resultados_amos_per"
-    # PASSO A: Garantir que a coluna de notas é número! 
-    # Se o Excel salvou com vírgula, trocamos por ponto e forçamos virar número.
+    # Carregar a base de dados
+    df = pd.read_csv("ed_enem_2024_resultados_amos_per.csv")
+    
+    # Garantir que a coluna de notas é número (limpeza de vírgulas, se houver)
     if df['nota_media_5_notas'].dtype == 'object':
         df['nota_media_5_notas'] = df['nota_media_5_notas'].astype(str).str.replace(',', '.')
     
     # errors='coerce' transforma qualquer lixo/texto que não seja número em "vazio" (NaN)
     df['nota_media_5_notas'] = pd.to_numeric(df['nota_media_5_notas'], errors='coerce')
-    
-    # PASSO B: Criando Faixas de Notas
-    bins = [0, 400, 500, 600, 700, 800, 1000]
-    labels = ['0-400', '400-500', '500-600', '600-700', '700-800', '800+']
-    df['faixa_nota_media'] = pd.cut(df['nota_media_5_notas'], bins=bins, labels=labels)
-    
-    # PASSO C: Transformando a categoria em Texto puro para o Plotly não bugar
-    df['faixa_nota_media'] = df['faixa_nota_media'].astype(str)
-    df['faixa_nota_media'] = df['faixa_nota_media'].replace('nan', 'Sem Nota')
     
     return df
 
@@ -113,25 +104,20 @@ tab_geral, tab_exatas, tab_humanas = st.tabs(["🏠 Geral", "📐 Exatas", "📚
 with tab_geral:
     st.header("Visão Macro e Correlações")
     
-    col1, col2 = st.columns(2)
+    st.subheader("Comparação entre Matérias")
     
-    with col1:
-        st.subheader("Distribuição por Faixa de Notas")
-        fig_faixa = px.histogram(df_filtrado_global, x="faixa_nota_media", 
-                                 color_discrete_sequence=['#26466D'],
-                                 category_orders={"faixa_nota_media": ['0-400', '400-500', '500-600', '600-700', '700-800', '800+']})
-        st.plotly_chart(fig_faixa, use_container_width=True)
-
-    with col2:
-        st.subheader("Comparação entre Matérias")
+    # Reorganizado para os seletores ficarem lado a lado em cima do gráfico
+    col_x, col_y = st.columns(2)
+    with col_x:
         mat_x = st.selectbox("Eixo X:", ['nota_mt_matematica', 'nota_cn_ciencias_da_natureza', 'nota_ch_ciencias_humanas', 'nota_lc_linguagens_e_codigos', 'nota_redacao'], index=0)
+    with col_y:
         mat_y = st.selectbox("Eixo Y:", ['nota_mt_matematica', 'nota_cn_ciencias_da_natureza', 'nota_ch_ciencias_humanas', 'nota_lc_linguagens_e_codigos', 'nota_redacao'], index=1)
-        
-        fig_scatter = px.scatter(df_filtrado_global.sample(min(2000, len(df_filtrado_global))), 
-                                 x=mat_x, y=mat_y, trendline="ols",
-                                 opacity=0.5, color_discrete_sequence=['#D9383A'])
-        st.plotly_chart(fig_scatter, use_container_width=True)
-        st.caption("Amostra de 2000 registros para otimizar a visualização.")
+    
+    fig_scatter = px.scatter(df_filtrado_global.sample(min(2000, len(df_filtrado_global))), 
+                             x=mat_x, y=mat_y, trendline="ols",
+                             opacity=0.5, color_discrete_sequence=['#D9383A'])
+    st.plotly_chart(fig_scatter, use_container_width=True)
+    st.caption("Amostra de 2000 registros para otimizar a visualização.")
 
 # --- ABA EXATAS ---
 with tab_exatas:
