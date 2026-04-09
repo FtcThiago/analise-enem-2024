@@ -42,13 +42,16 @@ st.markdown("""
 def carregar_dados():
     # 3. Carregar a tabela do ENEM 2024
     query_enem = "SELECT * FROM ed_enem_2024_resultados_amos_per"
-    df = pd.read_sql(query_enem, engine)
-    return df
-    
     # Criando Faixas de Notas (0-400, 400-500, etc.)
     bins = [0, 400, 500, 600, 700, 800, 1000]
     labels = ['0-400', '400-500', '500-600', '600-700', '700-800', '800+']
     df['faixa_nota_media'] = pd.cut(df['nota_media_5_notas'], bins=bins, labels=labels)
+    
+    # TRUQUE: Transformando a categoria em Texto puro. Isso evita o bug do Plotly!
+    df['faixa_nota_media'] = df['faixa_nota_media'].astype(str)
+    
+    # Se tiver "nan" (vazio) como string, vamos deixar claro
+    df['faixa_nota_media'] = df['faixa_nota_media'].replace('nan', 'Sem Nota')
     
     return df
 
