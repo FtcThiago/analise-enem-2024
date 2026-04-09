@@ -40,20 +40,13 @@ st.markdown("""
 # 3. Carregamento dos Dados
 @st.cache_data
 def carregar_dados():
-    df = pd.read_csv("ed_enem_2024_resultados_amos_per.csv")
-    
-    if df['nota_media_5_notas'].dtype == 'object':
-        df['nota_media_5_notas'] = df['nota_media_5_notas'].astype(str).str.replace(',', '.')
-    
-    df['nota_media_5_notas'] = pd.to_numeric(df['nota_media_5_notas'], errors='coerce')
-    
-    # Tratando nomes vazios para os filtros não quebrarem
-    df['regiao_nome_prova'] = df['regiao_nome_prova'].fillna('Não Informado')
-    df['tp_dependencia_adm_esc'] = df['tp_dependencia_adm_esc'].fillna('Não Informado')
-    
+    # 3. Carregar a tabela do ENEM 2024
+    query_enem = "SELECT * FROM ed_enem_2024_resultados_amos_per"
+    df = pd.read_sql(query_enem, engine)
     return df
 
 df = carregar_dados()
+df = df[df['sg_uf_esc'] != '  ']
 
 def gerar_tabela_frequencia(df_input):
     freq = df_input['sg_uf_prova'].value_counts().reset_index()
