@@ -65,7 +65,19 @@ def gerar_tabela_frequencia(df_input):
 st.sidebar.image("https://www.gov.br/inep/pt-br/assuntos/provas-e-exames/enem/logo_enem.png", width=150)
 st.sidebar.title("Filtros Globais")
 
-# Filtro Faixa por NOTAS
+# Filtro 1: Região
+regioes = sorted(df['regiao_nome_prova'].unique().tolist())
+regiao_sel = st.sidebar.multiselect("1. Região do Brasil:", regioes, default=regioes)
+
+# Filtro 2: Estado (Fica dinâmico dependendo da região escolhida)
+ufs_filtradas = sorted(df[df['regiao_nome_prova'].isin(regiao_sel)]['sg_uf_prova'].dropna().unique().tolist())
+uf_selecionada = st.sidebar.multiselect("2. Estados (UF):", ufs_filtradas, default=ufs_filtradas)
+
+# Filtro 3: Dependência Administrativa da Escola
+deps = sorted(df['tp_dependencia_adm_esc'].unique().tolist())
+dep_sel = st.sidebar.multiselect("3. Tipo de Escola:", deps, default=deps)
+
+# Filtro 4 e 5: Faixa por NOTAS
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🎯 Filtro de Desempenho")
 
@@ -89,7 +101,11 @@ nota_min, nota_max = st.sidebar.slider(
     value=(0.0, 1000.0), step=10.0
 )
 
-# Aplicando todos os filtros
+# ----------------------------------------------------
+# PASSO 2: APLICAR TODOS OS FILTROS NO DATAFRAME
+# ----------------------------------------------------
+
+# Agora que todas as variáveis já existem, podemos filtrar!
 df_filtrado_global = df[
     (df['regiao_nome_prova'].isin(regiao_sel)) &
     (df['sg_uf_prova'].isin(uf_selecionada)) &
@@ -97,18 +113,6 @@ df_filtrado_global = df[
     (df[coluna_filtro] >= nota_min) &
     (df[coluna_filtro] <= nota_max)
 ]
-
-# Filtro 1: Região
-regioes = sorted(df['regiao_nome_prova'].unique().tolist())
-regiao_sel = st.sidebar.multiselect("1. Região do Brasil:", regioes, default=regioes)
-
-# Filtro 2: Estado (Fica dinâmico dependendo da região escolhida)
-ufs_filtradas = sorted(df[df['regiao_nome_prova'].isin(regiao_sel)]['sg_uf_prova'].dropna().unique().tolist())
-uf_selecionada = st.sidebar.multiselect("2. Estados (UF):", ufs_filtradas, default=ufs_filtradas)
-
-# Filtro 3: Dependência Administrativa da Escola
-deps = sorted(df['tp_dependencia_adm_esc'].unique().tolist())
-dep_sel = st.sidebar.multiselect("3. Tipo de Escola:", deps, default=deps)
 
 
 # ==========================================
