@@ -2,6 +2,28 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import psycopg2
+from sqlalchemy import create_engine
+
+
+# 1. Conexão (Troque o USER e PASSWORD pelos seus)
+user = 'data_iesb'
+password = 'iesb'
+host = 'bigdata.dataiesb.com'
+db = 'iesb'
+
+conn_string = f'postgresql://{user}:{password}@{host}/{db}'
+engine = create_engine(conn_string)
+
+# 2. Verificar tabelas
+tab_query = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
+tabelas = pd.read_sql(tab_query, engine)
+print("Tabelas no banco:", tabelas)
+
+# 1. Configuração Inicial da Página
+st.set_page_config(page_title="Análise ENEM 2024", layout="wide")
+st.title("📊 Painel de Análise de Dados - ENEM 2024")
+st.markdown("Análise exploratória da base de amostra do ENEM 2024 (67.487 registros).")
 
 # 1. Configuração da Página (Sempre a primeira linha)
 st.set_page_config(page_title="Dashboard ENEM 2024", layout="wide", initial_sidebar_state="expanded")
@@ -32,7 +54,9 @@ st.markdown("""
 # 3. Carregamento dos Dados
 @st.cache_data
 def carregar_dados():
-    df = pd.read_csv("ed_enem_2024_resultados_amos_per.csv") 
+    # 3. Carregar a tabela do ENEM 2024
+    query_enem = "SELECT * FROM ed_enem_2024_resultados_amos_per"
+    df = pd.read_sql(query_enem, engine)
     return df
 
 df = carregar_dados()
