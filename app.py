@@ -1,8 +1,6 @@
 #Importação das bibliotecas
 import pandas as pd
 from sqlalchemy import create_engine
-import matplotlib.pyplot as plt
-import psycopg2
 import streamlit as st
 import plotly.express as px
 
