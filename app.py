@@ -107,7 +107,7 @@ with tab_geral:
         mat_y = st.selectbox("Eixo Y:", ['nota_mt_matematica', 'nota_cn_ciencias_da_natureza', 'nota_ch_ciencias_humanas', 'nota_lc_linguagens_e_codigos', 'nota_redacao'], index=1)
     
     fig_scatter = px.scatter(df_filtrado_global.sample(min(2000, len(df_filtrado_global))), 
-                             x=mat_x, y=mat_y, trendline="ols",
+                             x=mat_x, y=mat_y,
                              opacity=0.5, color_discrete_sequence=['#D9383A'])
     st.plotly_chart(fig_scatter, use_container_width=True)
     st.caption("Amostra de 2000 registros para otimizar a visualização.")
