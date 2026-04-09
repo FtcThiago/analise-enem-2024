@@ -18,35 +18,21 @@ engine = create_engine(conn_string)
 # 2. Verificar tabelas
 tab_query = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
 tabelas = pd.read_sql(tab_query, engine)
-print("Tabelas no banco:", tabelas)
 
-# 1. Configuração Inicial da Página
-st.set_page_config(page_title="Análise ENEM 2024", layout="wide")
-st.title("📊 Painel de Análise de Dados - ENEM 2024")
-st.markdown("Análise exploratória da base de amostra do ENEM 2024 (67.487 registros).")
 
-# 1. Configuração da Página (Sempre a primeira linha)
-st.set_page_config(page_title="Dashboard ENEM 2024", layout="wide", initial_sidebar_state="expanded")
 
-# 2. Estilização Personalizada (CSS para criar o Banner Azul da imagem)
+# 1. Configuração da Página
+st.set_page_config(page_title="Dashboard ENEM 2024 - Avançado", layout="wide")
+
+# 2. Estilo CSS para o Banner e Métricas
 st.markdown("""
 <style>
     .caixa-azul {
-        background-color: #26466D; /* Azul escuro igual ao da imagem */
-        padding: 30px;
-        border-radius: 10px;
-        color: white;
-        text-align: center;
-        margin-bottom: 20px;
+        background-color: #26466D; padding: 25px; border-radius: 10px; color: white;
+        text-align: center; margin-bottom: 20px;
     }
-    .caixa-azul h1 {
-        color: white;
-        font-size: 2.5em;
-        margin-bottom: 10px;
-    }
-    .caixa-azul p {
-        font-size: 1.1em;
-        line-height: 1.5;
+    .stMetric {
+        background-color: #f0f2f6; padding: 15px; border-radius: 10px; border-left: 5px solid #26466D;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -58,148 +44,135 @@ def carregar_dados():
     query_enem = "SELECT * FROM ed_enem_2024_resultados_amos_per"
     df = pd.read_sql(query_enem, engine)
     return df
+    
+    # Criando Faixas de Notas (0-400, 400-500, etc.)
+    bins = [0, 400, 500, 600, 700, 800, 1000]
+    labels = ['0-400', '400-500', '500-600', '600-700', '700-800', '800+']
+    df['faixa_nota_media'] = pd.cut(df['nota_media_5_notas'], bins=bins, labels=labels)
+    
+    return df
 
 df = carregar_dados()
 
-# ==========================================
-# 4. BARRA LATERAL (SIDEBAR) - Filtros
-# ==========================================
-st.sidebar.markdown("### 🎓 Filtro de Notas")
-nota_min = float(df['nota_media_5_notas'].min(skipna=True))
-nota_max = float(df['nota_media_5_notas'].max(skipna=True))
-
-faixa_nota = st.sidebar.slider(
-    "Filtrar candidatos pela nota média:",
-    min_value=nota_min,
-    max_value=nota_max,
-    value=(nota_min, nota_max)
-)
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 📍 Filtros Geográficos")
-
-ufs = df['sg_uf_prova'].dropna().unique().tolist()
-uf_selecionada = st.sidebar.multiselect(
-    "Selecione os Estados (UF):", 
-    options=ufs, 
-    default=ufs[:5] # Puxando apenas os 5 primeiros por padrão
-)
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🏫 Filtros Escolares")
-
-deps = df['tp_dependencia_adm_esc'].dropna().unique().tolist()
-dep_selecionada = st.sidebar.multiselect(
-    "Dependência Administrativa:", 
-    options=deps, 
-    default=deps
-)
-
-# Aplicando os filtros no banco de dados
-df_filtrado = df[
-    (df['nota_media_5_notas'] >= faixa_nota[0]) &
-    (df['nota_media_5_notas'] <= faixa_nota[1]) &
-    (df['sg_uf_prova'].isin(uf_selecionada))
-]
-
-if dep_selecionada:
-    df_filtrado = df_filtrado[df_filtrado['tp_dependencia_adm_esc'].isin(dep_selecionada)]
+# Função para Gerar Tabela de Frequência de Estados
+def gerar_tabela_frequencia(df_input):
+    # Frequência Absoluta
+    freq = df_input['sg_uf_prova'].value_counts().reset_index()
+    freq.columns = ['Estado', 'Freq. Absoluta']
+    
+    # Frequência Relativa (%)
+    total = freq['Freq. Absoluta'].sum()
+    freq['Freq. Relativa (%)'] = (freq['Freq. Absoluta'] / total) * 100
+    
+    # Ordenar para calcular acumulada
+    freq = freq.sort_values(by='Freq. Absoluta', ascending=False)
+    
+    # Frequência Acumulada Relativa (%)
+    freq['Freq. Acum. Relativa (%)'] = freq['Freq. Relativa (%)'].cumsum()
+    
+    # Pegar Top 5 e Bottom 5
+    top_5 = freq.head(5)
+    bottom_5 = freq.tail(5)
+    return pd.concat([top_5, bottom_5])
 
 # ==========================================
-# 5. ÁREA PRINCIPAL (CABEÇALHO)
+# 4. BARRA LATERAL (FILTROS GERAIS)
 # ==========================================
-# Desenhando a caixa azul baseada na sua imagem
+st.sidebar.image("https://www.gov.br/inep/pt-br/assuntos/provas-e-exames/enem/logo_enem.png", width=150)
+st.sidebar.title("Filtros Globais")
+ufs = sorted(df['sg_uf_prova'].dropna().unique().tolist())
+uf_selecionada = st.sidebar.multiselect("Selecione os Estados:", ufs, default=ufs)
+
+df_filtrado_global = df[df['sg_uf_prova'].isin(uf_selecionada)]
+
+# ==========================================
+# 5. CABEÇALHO
+# ==========================================
 st.markdown("""
 <div class="caixa-azul">
-    <h1>📊 Análise de Desempenho - ENEM 2024</h1>
-    <p>Plataforma de visualização e análise de dados educacionais dos candidatos do ENEM. O sistema oferece insights abrangentes sobre o desempenho dos alunos nas diferentes áreas de conhecimento, perfis regionais e infraestrutura escolar, contribuindo para o entendimento do cenário educacional brasileiro.</p>
+    <h1>Análise Estatística ENEM 2024</h1>
+    <p>Explore o desempenho detalhado por áreas, distribuições de frequência e correlações.</p>
 </div>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 6. ABAS DE NAVEGAÇÃO (TABS) E GRÁFICOS
+# 6. DEFINIÇÃO DAS ABAS
 # ==========================================
-# Criando as abas iguazinhas as da imagem (Docentes, Redes...)
-aba1, aba2, aba3 = st.tabs(["📚 Visão Geral", "📝 Desempenho por Área", "🌍 Mapa de Provas"])
+tab_geral, tab_exatas, tab_humanas = st.tabs(["🏠 Geral", "📐 Exatas", "📚 Humanas"])
 
-total_alunos = df_filtrado.shape[0]
-
-with aba1:
-    # Dividindo a tela em duas colunas para o Gráfico de Rosca e o de Barras
+# --- ABA GERAL ---
+with tab_geral:
+    st.header("Visão Macro e Correlações")
+    
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("#### Distribuição por Dependência Escolar")
-        # Preparando os dados para o gráfico de rosca (Donut)
-        dados_escola = df_filtrado['tp_dependencia_adm_esc'].value_counts().reset_index()
-        dados_escola.columns = ['Dependência', 'Quantidade']
-        
-        # Gráfico de Rosca (Pie chart com furo no meio)
-        fig_rosca = px.pie(
-            dados_escola, 
-            values='Quantidade', 
-            names='Dependência', 
-            hole=0.65, # Esse valor define o tamanho do buraco no meio
-            color_discrete_sequence=['#26466D', '#D9383A', '#45B69C', '#F4A261']
-        )
-        
-        # Colocando o número total bem no centro do gráfico (igual na sua imagem)
-        fig_rosca.update_layout(
-            annotations=[dict(text=f"<b>{total_alunos}</b><br>Alunos", x=0.5, y=0.5, font_size=20, showarrow=False)]
-        )
-        st.plotly_chart(fig_rosca, use_container_width=True)
+        st.subheader("Distribuição por Faixa de Notas")
+        fig_faixa = px.histogram(df_filtrado_global, x="faixa_nota_media", 
+                                 color_discrete_sequence=['#26466D'],
+                                 category_orders={"faixa_nota_media": ['0-400', '400-500', '500-600', '600-700', '700-800', '800+']})
+        st.plotly_chart(fig_faixa, use_container_width=True)
 
     with col2:
-        st.markdown("#### Média Geral por Região do Brasil")
-        # Gráfico de barras vermelhas como o da imagem
-        media_regiao = df_filtrado.groupby('regiao_nome_prova')['nota_media_5_notas'].mean().reset_index()
-        media_regiao = media_regiao.sort_values(by='nota_media_5_notas', ascending=False)
+        st.subheader("Comparação entre Matérias")
+        mat_x = st.selectbox("Eixo X:", ['nota_mt_matematica', 'nota_cn_ciencias_da_natureza', 'nota_ch_ciencias_humanas', 'nota_lc_linguagens_e_codigos', 'nota_redacao'], index=0)
+        mat_y = st.selectbox("Eixo Y:", ['nota_mt_matematica', 'nota_cn_ciencias_da_natureza', 'nota_ch_ciencias_humanas', 'nota_lc_linguagens_e_codigos', 'nota_redacao'], index=1)
         
-        fig_barras = px.bar(
-            media_regiao, 
-            x='regiao_nome_prova', 
-            y='nota_media_5_notas',
-            color_discrete_sequence=['#D9383A'], # Cor vermelha puxada da sua imagem
-            labels={'regiao_nome_prova': 'Região', 'nota_media_5_notas': 'Nota Média'},
-            text_auto='.1f'
-        )
-        fig_barras.update_layout(xaxis_title="", yaxis_title="Média das Notas")
-        st.plotly_chart(fig_barras, use_container_width=True)
+        fig_scatter = px.scatter(df_filtrado_global.sample(min(2000, len(df_filtrado_global))), 
+                                 x=mat_x, y=mat_y, trendline="ols",
+                                 opacity=0.5, color_discrete_sequence=['#D9383A'])
+        st.plotly_chart(fig_scatter, use_container_width=True)
+        st.caption("Amostra de 2000 registros para otimizar a visualização.")
 
-with aba2:
-    st.markdown("#### Desempenho Detalhado por Área de Conhecimento")
-    # Tabela com as médias das matérias
-    cols_notas = ['nota_cn_ciencias_da_natureza', 'nota_ch_ciencias_humanas', 
-                  'nota_lc_linguagens_e_codigos', 'nota_mt_matematica', 'nota_redacao']
-    medias = df_filtrado[cols_notas].mean().reset_index()
-    medias.columns = ['Área de Conhecimento', 'Média de Pontos']
-    medias['Área de Conhecimento'] = medias['Área de Conhecimento'].str.replace('nota_', '').str.replace('_', ' ').str.title()
+# --- ABA EXATAS ---
+with tab_exatas:
+    st.header("Análise de Ciências da Natureza e Matemática")
+    materia_exatas = st.radio("Selecione a matéria para detalhamento:", 
+                               ["Matemática", "Ciências da Natureza"], horizontal=True)
     
-    fig_barras_materias = px.bar(
-        medias, 
-        x='Área de Conhecimento', 
-        y='Média de Pontos', 
-        color='Área de Conhecimento',
-        text_auto='.1f'
-    )
-    st.plotly_chart(fig_barras_materias, use_container_width=True)
+    col_map = {"Matemática": "nota_mt_matematica", "Ciências da Natureza": "nota_cn_ciencias_da_natureza"}
+    col_alvo = col_map[materia_exatas]
+    
+    # Métricas "Destaques"
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Destaques: Maior Nota", f"{df_filtrado_global[col_alvo].max():.1f}")
+    c2.metric("Destaques: Menor Nota", f"{df_filtrado_global[col_alvo].min():.1f}")
+    c3.metric("Destaques: Média", f"{df_filtrado_global[col_alvo].mean():.1f}")
+    
+    col_g1, col_g2 = st.columns([2, 1])
+    with col_g1:
+        st.subheader(f"Distribuição de Notas: {materia_exatas}")
+        fig_hist = px.histogram(df_filtrado_global, x=col_alvo, nbins=40, color_discrete_sequence=['#26466D'])
+        st.plotly_chart(fig_hist, use_container_width=True)
+        st.info(f"**Explicação do Gráfico:** Este histograma mostra como as notas de {materia_exatas} estão distribuídas. "
+                "Picos à direita indicam uma prova onde muitos alunos foram bem, enquanto picos à esquerda indicam maior dificuldade.")
+    
+    with col_g2:
+        st.subheader("Frequência por Estado (Top/Bottom 5)")
+        st.table(gerar_tabela_frequencia(df_filtrado_global))
 
-with aba3:
-    st.markdown("#### Densidade e Médias por Município de Prova")
-    # Mapa geográfico simples e leve
-    df_mapa = df_filtrado.groupby(['no_municipio_prova', 'latitude', 'longitude'])['nota_media_5_notas'].mean().reset_index()
+# --- ABA HUMANAS ---
+with tab_humanas:
+    st.header("Análise de Humanas, Linguagens e Redação")
+    materia_humanas = st.radio("Selecione a matéria para detalhamento:", 
+                                ["Humanas", "Linguagens", "Redação"], horizontal=True)
+    
+    col_map_h = {"Humanas": "nota_ch_ciencias_humanas", "Linguagens": "nota_lc_linguagens_e_codigos", "Redação": "nota_redacao"}
+    col_alvo_h = col_map_h[materia_humanas]
+    
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Destaques: Maior Nota", f"{df_filtrado_global[col_alvo_h].max():.1f}")
+    c2.metric("Destaques: Menor Nota", f"{df_filtrado_global[col_alvo_h].min():.1f}")
+    c3.metric("Destaques: Média", f"{df_filtrado_global[col_alvo_h].mean():.1f}")
 
-    fig_mapa = px.scatter_mapbox(
-        df_mapa, 
-        lat="latitude", 
-        lon="longitude", 
-        color="nota_media_5_notas",
-        size="nota_media_5_notas",
-        hover_name="no_municipio_prova",
-        color_continuous_scale="Reds",
-        size_max=15, 
-        zoom=3.5,
-        mapbox_style="carto-positron"
-    )
-    fig_mapa.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-    st.plotly_chart(fig_mapa, use_container_width=True)
+    col_h1, col_h2 = st.columns([2, 1])
+    with col_h1:
+        st.subheader(f"Distribuição de Notas: {materia_humanas}")
+        fig_hist_h = px.histogram(df_filtrado_global, x=col_alvo_h, nbins=40, color_discrete_sequence=['#D9383A'])
+        st.plotly_chart(fig_hist_h, use_container_width=True)
+        st.info(f"**Explicação do Gráfico:** A distribuição de {materia_humanas} permite identificar a consistência dos candidatos. "
+                "Em Redação, é comum observarmos concentrações em valores múltiplos de 40 ou 50 devido aos critérios de correção.")
+
+    with col_h2:
+        st.subheader("Frequência por Estado (Top/Bottom 5)")
+        st.table(gerar_tabela_frequencia(df_filtrado_global))
