@@ -5,12 +5,12 @@ import plotly.graph_objects as go
 import psycopg2
 from sqlalchemy import create_engine
 
-
-# 1. Conexão (Troque o USER e PASSWORD pelos seus)
-user = 'data_iesb'
-password = 'iesb'
-host = 'bigdata.dataiesb.com'
-db = 'iesb'
+# 1. Pegando as chaves escondidas lá no secrets.toml
+user = st.secrets["banco_enem"]["usuario"]
+password = st.secrets["banco_enem"]["senha"]
+host = st.secrets["banco_enem"]["host"]
+porta = st.secrets["banco_enem"]["porta"]
+db = st.secrets["banco_enem"]["nome_db"]
 
 conn_string = f'postgresql://{user}:{password}@{host}/{db}'
 engine = create_engine(conn_string)
