@@ -107,11 +107,11 @@ nota_min, nota_max = st.sidebar.slider(
 
 # Agora que todas as variáveis já existem, podemos filtrar!
 df_filtrado_global = df[
+    (df[coluna_filtro] >= nota_min) &
+    (df[coluna_filtro] <= nota_max)&
     (df['regiao_nome_prova'].isin(regiao_sel)) &
     (df['sg_uf_prova'].isin(uf_selecionada)) &
-    (df['tp_dependencia_adm_esc'].isin(dep_sel)) &
-    (df[coluna_filtro] >= nota_min) &
-    (df[coluna_filtro] <= nota_max)
+    (df['tp_dependencia_adm_esc'].isin(dep_sel))
 ]
 
 
