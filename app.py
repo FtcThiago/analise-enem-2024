@@ -46,6 +46,7 @@ def carregar_dados():
     return df
 
 df = carregar_dados()
+df = df[df['sg_uf_esc'] != '  ']
 
 # Função para Gerar Tabela de Frequência de Estados
 def gerar_tabela_frequencia(df_input):
