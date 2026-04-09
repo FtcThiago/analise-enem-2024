@@ -83,6 +83,18 @@ df_filtrado_global = df[
     (df['sg_uf_prova'].isin(uf_selecionada)) &
     (df['tp_dependencia_adm_esc'].isin(dep_sel))
 ]
+# Filtro 4: Faixa por NOTAS
+
+faixas_disponiveis = ['0-400', '400-500', '500-600', '600-700', '700-800', '800+', 'Sem Nota']
+faixa_sel = st.sidebar.multiselect("4. Faixa de Desempenho:", faixas_disponiveis, default=['0-400', '400-500', '500-600', '600-700', '700-800', '800+'])
+
+# Aplicando todos os filtros
+df_filtrado_global = df[
+    (df['regiao_nome_prova'].isin(regiao_sel)) &
+    (df['sg_uf_prova'].isin(uf_selecionada)) &
+    (df['tp_dependencia_adm_esc'].isin(dep_sel)) &
+    (df['faixa_nota_media'].isin(faixa_sel))
+]
 
 # ==========================================
 # 5. CABEÇALHO
