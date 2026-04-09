@@ -40,16 +40,9 @@ st.markdown("""
 # 3. Carregamento dos Dados
 @st.cache_data
 def carregar_dados():
-    # Carregar a base de dados
-    df = pd.read_csv("ed_enem_2024_resultados_amos_per.csv")
-    
-    # Garantir que a coluna de notas é número (limpeza de vírgulas, se houver)
-    if df['nota_media_5_notas'].dtype == 'object':
-        df['nota_media_5_notas'] = df['nota_media_5_notas'].astype(str).str.replace(',', '.')
-    
-    # errors='coerce' transforma qualquer lixo/texto que não seja número em "vazio" (NaN)
-    df['nota_media_5_notas'] = pd.to_numeric(df['nota_media_5_notas'], errors='coerce')
-    
+    # 3. Carregar a tabela do ENEM 2024
+    query_enem = "SELECT * FROM ed_enem_2024_resultados_amos_per"
+    df = pd.read_sql(query_enem, engine)
     return df
 
 df = carregar_dados()
