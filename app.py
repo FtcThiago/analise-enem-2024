@@ -142,7 +142,7 @@ with tab_geral:
     
     fig_scatter = px.scatter(df_filtrado_global.sample(min(2000, len(df_filtrado_global))), 
                              x=mat_x, y=mat_y, opacity=0.5, color_discrete_sequence=['#D9383A'])
-    st.plotly_chart(fig_scatter, use_container_width=True)
+    st.plotly_chart(fig_scatter, use_container_width=True, key="scatter_geral")
     st.caption("Amostra de 2000 registros para otimizar a visualização.")
 
 # --- ABA EXATAS ---
