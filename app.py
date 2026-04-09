@@ -65,6 +65,17 @@ def gerar_tabela_frequencia(df_input):
 st.sidebar.image("https://www.gov.br/inep/pt-br/assuntos/provas-e-exames/enem/logo_enem.png", width=150)
 st.sidebar.title("Filtros Globais")
 
+
+
+# Aplicando todos os filtros
+df_filtrado_global = df[
+    (df['regiao_nome_prova'].isin(regiao_sel)) &
+    (df['sg_uf_prova'].isin(uf_selecionada)) &
+    (df['tp_dependencia_adm_esc'].isin(dep_sel)) &
+    (df[coluna_filtro] >= nota_min) &
+    (df[coluna_filtro] <= nota_max)
+]
+
 # Filtro Faixa por NOTAS
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🎯 Filtro de Desempenho")
@@ -88,15 +99,6 @@ nota_min, nota_max = st.sidebar.slider(
     min_value=0.0, max_value=1000.0, 
     value=(0.0, 1000.0), step=10.0
 )
-
-# Aplicando todos os filtros
-df_filtrado_global = df[
-    (df['regiao_nome_prova'].isin(regiao_sel)) &
-    (df['sg_uf_prova'].isin(uf_selecionada)) &
-    (df['tp_dependencia_adm_esc'].isin(dep_sel)) &
-    (df[coluna_filtro] >= nota_min) &
-    (df[coluna_filtro] <= nota_max)
-]
 
 # Filtro 1: Região
 regioes = sorted(df['regiao_nome_prova'].unique().tolist())
