@@ -24,7 +24,7 @@ tabelas = pd.read_sql(tab_query, engine)
 # 1. Configuração da Página
 st.set_page_config(page_title="Dashboard ENEM 2024 - Avançado", layout="wide")
 
-# 2. Estilo CSS para o Banner e Métricas
+# 2. Estilo CSS
 st.markdown("""
 <style>
     .caixa-azul {
@@ -40,31 +40,28 @@ st.markdown("""
 # 3. Carregamento dos Dados
 @st.cache_data
 def carregar_dados():
-    # 3. Carregar a tabela do ENEM 2024
-    query_enem = "SELECT * FROM ed_enem_2024_resultados_amos_per"
-    df = pd.read_sql(query_enem, engine)
+    df = pd.read_csv("ed_enem_2024_resultados_amos_per.csv")
+    
+    if df['nota_media_5_notas'].dtype == 'object':
+        df['nota_media_5_notas'] = df['nota_media_5_notas'].astype(str).str.replace(',', '.')
+    
+    df['nota_media_5_notas'] = pd.to_numeric(df['nota_media_5_notas'], errors='coerce')
+    
+    # Tratando nomes vazios para os filtros não quebrarem
+    df['regiao_nome_prova'] = df['regiao_nome_prova'].fillna('Não Informado')
+    df['tp_dependencia_adm_esc'] = df['tp_dependencia_adm_esc'].fillna('Não Informado')
+    
     return df
 
 df = carregar_dados()
-df = df[df['sg_uf_esc'] != '  ']
 
-# Função para Gerar Tabela de Frequência de Estados
 def gerar_tabela_frequencia(df_input):
-    # Frequência Absoluta
     freq = df_input['sg_uf_prova'].value_counts().reset_index()
     freq.columns = ['Estado', 'Freq. Absoluta']
-    
-    # Frequência Relativa (%)
     total = freq['Freq. Absoluta'].sum()
     freq['Freq. Relativa (%)'] = (freq['Freq. Absoluta'] / total) * 100
-    
-    # Ordenar para calcular acumulada
     freq = freq.sort_values(by='Freq. Absoluta', ascending=False)
-    
-    # Frequência Acumulada Relativa (%)
     freq['Freq. Acum. Relativa (%)'] = freq['Freq. Relativa (%)'].cumsum()
-    
-    # Pegar Top 5 e Bottom 5
     top_5 = freq.head(5)
     bottom_5 = freq.tail(5)
     return pd.concat([top_5, bottom_5])
@@ -74,10 +71,25 @@ def gerar_tabela_frequencia(df_input):
 # ==========================================
 st.sidebar.image("https://www.gov.br/inep/pt-br/assuntos/provas-e-exames/enem/logo_enem.png", width=150)
 st.sidebar.title("Filtros Globais")
-ufs = sorted(df['sg_uf_prova'].dropna().unique().tolist())
-uf_selecionada = st.sidebar.multiselect("Selecione os Estados:", ufs, default=ufs)
 
-df_filtrado_global = df[df['sg_uf_prova'].isin(uf_selecionada)]
+# Filtro 1: Região
+regioes = sorted(df['regiao_nome_prova'].unique().tolist())
+regiao_sel = st.sidebar.multiselect("1. Região do Brasil:", regioes, default=regioes)
+
+# Filtro 2: Estado (Fica dinâmico dependendo da região escolhida)
+ufs_filtradas = sorted(df[df['regiao_nome_prova'].isin(regiao_sel)]['sg_uf_prova'].dropna().unique().tolist())
+uf_selecionada = st.sidebar.multiselect("2. Estados (UF):", ufs_filtradas, default=ufs_filtradas)
+
+# Filtro 3: Dependência Administrativa da Escola
+deps = sorted(df['tp_dependencia_adm_esc'].unique().tolist())
+dep_sel = st.sidebar.multiselect("3. Tipo de Escola:", deps, default=deps)
+
+# Aplicação dos Filtros no DataFrame
+df_filtrado_global = df[
+    (df['regiao_nome_prova'].isin(regiao_sel)) &
+    (df['sg_uf_prova'].isin(uf_selecionada)) &
+    (df['tp_dependencia_adm_esc'].isin(dep_sel))
+]
 
 # ==========================================
 # 5. CABEÇALHO
@@ -96,11 +108,39 @@ tab_geral, tab_exatas, tab_humanas = st.tabs(["🏠 Geral", "📐 Exatas", "📚
 
 # --- ABA GERAL ---
 with tab_geral:
-    st.header("Visão Macro e Correlações")
+    st.header("Visão Macro e Indicadores")
     
-    st.subheader("Comparação entre Matérias")
+    # 1. KPIs no topo da aba geral
+    kpi1, kpi2, kpi3 = st.columns(3)
+    kpi1.metric("Total de Alunos (Filtro)", f"{len(df_filtrado_global):,}".replace(',', '.'))
+    kpi2.metric("Média Geral Nacional", f"{df_filtrado_global['nota_media_5_notas'].mean():.1f}")
+    kpi3.metric("Maior Média Registrada", f"{df_filtrado_global['nota_media_5_notas'].max():.1f}")
     
-    # Reorganizado para os seletores ficarem lado a lado em cima do gráfico
+    st.markdown("---")
+    
+    # 2. Divisão da tela: Gráfico de Barras e Tabela de Frequência
+    col_geral_1, col_geral_2 = st.columns([2, 1])
+    
+    with col_geral_1:
+        st.subheader("Média por Tipo de Escola")
+        media_escola = df_filtrado_global.groupby('tp_dependencia_adm_esc')['nota_media_5_notas'].mean().reset_index()
+        fig_escola = px.bar(media_escola, x='tp_dependencia_adm_esc', y='nota_media_5_notas', 
+                            color_discrete_sequence=['#26466D'], text_auto='.1f',
+                            labels={'tp_dependencia_adm_esc': 'Tipo de Escola', 'nota_media_5_notas': 'Nota Média'})
+        st.plotly_chart(fig_escola, use_container_width=True)
+
+    with col_geral_2:
+        st.subheader("Frequência por Estado (Top/Bottom 5)")
+        # Agora a tabela mora aqui!
+        if len(df_filtrado_global) > 0:
+            st.dataframe(gerar_tabela_frequencia(df_filtrado_global), hide_index=True)
+        else:
+            st.warning("Sem dados para a tabela.")
+
+    st.markdown("---")
+    
+    # 3. Scatter Plot (Comparação de Matérias)
+    st.subheader("Comparação de Desempenho entre Matérias")
     col_x, col_y = st.columns(2)
     with col_x:
         mat_x = st.selectbox("Eixo X:", ['nota_mt_matematica', 'nota_cn_ciencias_da_natureza', 'nota_ch_ciencias_humanas', 'nota_lc_linguagens_e_codigos', 'nota_redacao'], index=0)
@@ -108,8 +148,7 @@ with tab_geral:
         mat_y = st.selectbox("Eixo Y:", ['nota_mt_matematica', 'nota_cn_ciencias_da_natureza', 'nota_ch_ciencias_humanas', 'nota_lc_linguagens_e_codigos', 'nota_redacao'], index=1)
     
     fig_scatter = px.scatter(df_filtrado_global.sample(min(2000, len(df_filtrado_global))), 
-                             x=mat_x, y=mat_y,
-                             opacity=0.5, color_discrete_sequence=['#D9383A'])
+                             x=mat_x, y=mat_y, opacity=0.5, color_discrete_sequence=['#D9383A'])
     st.plotly_chart(fig_scatter, use_container_width=True)
     st.caption("Amostra de 2000 registros para otimizar a visualização.")
 
@@ -122,23 +161,17 @@ with tab_exatas:
     col_map = {"Matemática": "nota_mt_matematica", "Ciências da Natureza": "nota_cn_ciencias_da_natureza"}
     col_alvo = col_map[materia_exatas]
     
-    # Métricas "Destaques"
     c1, c2, c3 = st.columns(3)
     c1.metric("Destaques: Maior Nota", f"{df_filtrado_global[col_alvo].max():.1f}")
     c2.metric("Destaques: Menor Nota", f"{df_filtrado_global[col_alvo].min():.1f}")
     c3.metric("Destaques: Média", f"{df_filtrado_global[col_alvo].mean():.1f}")
     
-    col_g1, col_g2 = st.columns([2, 1])
-    with col_g1:
-        st.subheader(f"Distribuição de Notas: {materia_exatas}")
-        fig_hist = px.histogram(df_filtrado_global, x=col_alvo, nbins=40, color_discrete_sequence=['#26466D'])
-        st.plotly_chart(fig_hist, use_container_width=True)
-        st.info(f"**Explicação do Gráfico:** Este histograma mostra como as notas de {materia_exatas} estão distribuídas. "
-                "Picos à direita indicam uma prova onde muitos alunos foram bem, enquanto picos à esquerda indicam maior dificuldade.")
-    
-    with col_g2:
-        st.subheader("Frequência por Estado (Top/Bottom 5)")
-        st.table(gerar_tabela_frequencia(df_filtrado_global))
+    st.subheader(f"Distribuição de Notas: {materia_exatas}")
+    # O histograma agora ocupa a tela toda, já que tiramos a tabela daqui
+    fig_hist = px.histogram(df_filtrado_global, x=col_alvo, nbins=40, color_discrete_sequence=['#26466D'])
+    st.plotly_chart(fig_hist, use_container_width=True)
+    st.info(f"**Explicação do Gráfico:** Este histograma mostra como as notas de {materia_exatas} estão distribuídas. "
+            "Picos à direita indicam uma prova onde muitos alunos foram bem, enquanto picos à esquerda indicam maior dificuldade.")
 
 # --- ABA HUMANAS ---
 with tab_humanas:
@@ -154,12 +187,12 @@ with tab_humanas:
     c2.metric("Destaques: Menor Nota", f"{df_filtrado_global[col_alvo_h].min():.1f}")
     c3.metric("Destaques: Média", f"{df_filtrado_global[col_alvo_h].mean():.1f}")
 
-    col_h1, col_h2 = st.columns([2, 1])
-    with col_h1:
-        st.subheader(f"Distribuição de Notas: {materia_humanas}")
-        fig_hist_h = px.histogram(df_filtrado_global, x=col_alvo_h, nbins=40, color_discrete_sequence=['#D9383A'])
-        st.plotly_chart(fig_hist_h, use_container_width=True)
-        st.info(f"**Explicação do Gráfico:** A distribuição de {materia_humanas} permite identificar a consistência dos candidatos. "
+    st.subheader(f"Distribuição de Notas: {materia_humanas}")
+    # O histograma ocupando a tela toda também
+    fig_hist_h = px.histogram(df_filtrado_global, x=col_alvo_h, nbins=40, color_discrete_sequence=['#D9383A'])
+    st.plotly_chart(fig_hist_h, use_container_width=True)
+    st.info(f"**Explicação do Gráfico:** A distribuição de {materia_humanas} permite identificar a consistência dos candidatos. "
+            "Em Redação, é comum observarmos concentrações em valores múltiplos de 40 ou 50 devido aos critérios de correção.")
                 "Em Redação, é comum observarmos concentrações em valores múltiplos de 40 ou 50 devido aos critérios de correção.")
 
     with col_h2:
