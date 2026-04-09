@@ -162,7 +162,7 @@ with tab_exatas:
     st.subheader(f"Distribuição de Notas: {materia_exatas}")
     # O histograma agora ocupa a tela toda, já que tiramos a tabela daqui
     fig_hist = px.histogram(df_filtrado_global, x=col_alvo, nbins=40, color_discrete_sequence=['#26466D'])
-    st.plotly_chart(fig_hist, use_container_width=True)
+    st.plotly_chart(fig_hist, use_container_width=True, key="hist_exatas")
     st.info(f"**Explicação do Gráfico:** Este histograma mostra como as notas de {materia_exatas} estão distribuídas. "
             "Picos à direita indicam uma prova onde muitos alunos foram bem, enquanto picos à esquerda indicam maior dificuldade.")
 
@@ -183,8 +183,7 @@ with tab_humanas:
     st.subheader(f"Distribuição de Notas: {materia_humanas}")
     # O histograma ocupando a tela toda também
     fig_hist_h = px.histogram(df_filtrado_global, x=col_alvo_h, nbins=40, color_discrete_sequence=['#D9383A'])
-    st.plotly_chart(fig_hist_h, use_container_width=True)
-    st.plotly_chart(fig_hist_h, use_container_width=True)
+    st.plotly_chart(fig_hist_h, use_container_width=True, key="hist_humanas")
     st.info(f"**Explicação do Gráfico:** A distribuição de {materia_humanas} permite identificar a consistência dos candidatos. Em Redação, é comum observarmos concentrações em valores múltiplos de 40 ou 50 devido aos critérios de correção.")
 
     with col_h2:
