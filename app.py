@@ -193,7 +193,7 @@ with tab_humanas:
     st.plotly_chart(fig_hist_h, use_container_width=True)
     st.info(f"**Explicação do Gráfico:** A distribuição de {materia_humanas} permite identificar a consistência dos candidatos. "
             "Em Redação, é comum observarmos concentrações em valores múltiplos de 40 ou 50 devido aos critérios de correção.")
-                "Em Redação, é comum observarmos concentrações em valores múltiplos de 40 ou 50 devido aos critérios de correção.")
+            "Em Redação, é comum observarmos concentrações em valores múltiplos de 40 ou 50 devido aos critérios de correção.")
 
     with col_h2:
         st.subheader("Frequência por Estado (Top/Bottom 5)")
