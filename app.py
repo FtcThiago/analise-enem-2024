@@ -42,15 +42,21 @@ st.markdown("""
 def carregar_dados():
     # 3. Carregar a tabela do ENEM 2024
     query_enem = "SELECT * FROM ed_enem_2024_resultados_amos_per"
-    # Criando Faixas de Notas (0-400, 400-500, etc.)
+    # PASSO A: Garantir que a coluna de notas é número! 
+    # Se o Excel salvou com vírgula, trocamos por ponto e forçamos virar número.
+    if df['nota_media_5_notas'].dtype == 'object':
+        df['nota_media_5_notas'] = df['nota_media_5_notas'].astype(str).str.replace(',', '.')
+    
+    # errors='coerce' transforma qualquer lixo/texto que não seja número em "vazio" (NaN)
+    df['nota_media_5_notas'] = pd.to_numeric(df['nota_media_5_notas'], errors='coerce')
+    
+    # PASSO B: Criando Faixas de Notas
     bins = [0, 400, 500, 600, 700, 800, 1000]
     labels = ['0-400', '400-500', '500-600', '600-700', '700-800', '800+']
     df['faixa_nota_media'] = pd.cut(df['nota_media_5_notas'], bins=bins, labels=labels)
     
-    # TRUQUE: Transformando a categoria em Texto puro. Isso evita o bug do Plotly!
+    # PASSO C: Transformando a categoria em Texto puro para o Plotly não bugar
     df['faixa_nota_media'] = df['faixa_nota_media'].astype(str)
-    
-    # Se tiver "nan" (vazio) como string, vamos deixar claro
     df['faixa_nota_media'] = df['faixa_nota_media'].replace('nan', 'Sem Nota')
     
     return df
