@@ -312,8 +312,7 @@ with tab_estados:
             fig_regioes.update_traces(textposition='inside', textfont_size=12)
             st.plotly_chart(fig_regioes, use_container_width=True, key="bar_regioes_stacked")
             
-    else:
-        st.warning("Sem dados para a análise estadual. Ajuste os filtros globais.")
+
             
     else:
         st.warning("Sem dados para a análise estadual. Ajuste os filtros globais.")
