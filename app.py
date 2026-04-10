@@ -153,28 +153,37 @@ with tab_geral:
     st.subheader("Análise por Perfil da Escola")
     
     if len(df_filtrado_global) > 0:
-        # Criando duas colunas para colocar os dois gráficos lado a lado
-        col_geral_1, col_geral_2 = st.columns(2)
+        # Criando TRÊS colunas para acomodar o novo gráfico
+        col_geral_1, col_geral_2, col_geral_3 = st.columns(3)
         
         with col_geral_1:
             media_escola = df_filtrado_global.groupby('tp_dependencia_adm_esc')['nota_media_5_notas'].mean().reset_index()
             fig_escola = px.bar(media_escola, x='tp_dependencia_adm_esc', y='nota_media_5_notas', 
-                                title="Média Geral por Tipo de Escola",
+                                title="Média Geral",
                                 color_discrete_sequence=['#26466D'], text_auto='.1f',
                                 labels={'tp_dependencia_adm_esc': 'Tipo de Escola', 'nota_media_5_notas': 'Nota Média'})
             st.plotly_chart(fig_escola, use_container_width=True)
             
         with col_geral_2:
-            # Novo gráfico: Localização (Urbana/Rural)
+            # NOVO GRÁFICO: Contagem por Tipo de Escola
+            contagem_tipo_esc = df_filtrado_global['tp_dependencia_adm_esc'].value_counts().reset_index()
+            contagem_tipo_esc.columns = ['Tipo de Escola', 'Quantidade de Alunos']
+            
+            fig_contagem_esc = px.bar(contagem_tipo_esc, x='Tipo de Escola', y='Quantidade de Alunos', 
+                                      title="Qtd. Alunos por Escola",
+                                      color_discrete_sequence=['#D9383A'], text_auto=True)
+            st.plotly_chart(fig_contagem_esc, use_container_width=True)
+
+        with col_geral_3:
+            # Gráfico: Localização (Urbana/Rural)
             df_loc = df_filtrado_global.copy()
-            # Tratamento caso haja valores vazios na localização
             df_loc['tp_localizacao_esc'] = df_loc['tp_localizacao_esc'].fillna('Não Informado')
             
             contagem_loc = df_loc['tp_localizacao_esc'].value_counts().reset_index()
             contagem_loc.columns = ['Localização', 'Quantidade de Alunos']
             
             fig_loc = px.bar(contagem_loc, x='Localização', y='Quantidade de Alunos', 
-                             title="Quantidade de Alunos por Localização",
+                             title="Qtd. Alunos por Localização",
                              color_discrete_sequence=['#4B8BBE'], text_auto=True)
             st.plotly_chart(fig_loc, use_container_width=True)
             
