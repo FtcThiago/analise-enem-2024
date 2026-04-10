@@ -278,7 +278,7 @@ with tab_estados:
             
         st.markdown("---")
         
-        st.subheader("Desempenho Acima da Média por Região")
+        st.subheader("Proporção de Desempenho por Região")
         materia_estado = st.selectbox("Selecione a matéria para analisar os destaques regionais:", 
                                       list(dicionario_notas.keys()), key="filtro_estado")
         col_estado_alvo = dicionario_notas[materia_estado]
@@ -286,22 +286,34 @@ with tab_estados:
         media_atual = df_filtrado_global[col_estado_alvo].mean()
         st.info(f"A média atual de **{materia_estado}** (considerando os filtros globais) é de **{media_atual:.1f}** pontos.")
         
-        df_acima_media = df_filtrado_global[df_filtrado_global[col_estado_alvo] > media_atual]
+        # NOVO CÓDIGO DO GRÁFICO EMPILHADO
+        df_status_regiao = df_filtrado_global.copy()
         
-        if len(df_acima_media) > 0:
-            contagem_regiao = df_acima_media['regiao_nome_prova'].value_counts().reset_index()
-            contagem_regiao.columns = ['Região', 'Quantidade de Alunos']
+        # Cria uma nova coluna classificando se o aluno está acima ou abaixo da média
+        df_status_regiao['Status'] = df_status_regiao[col_estado_alvo].apply(
+            lambda x: 'Acima da Média' if x > media_atual else 'Abaixo/Na Média'
+        )
+        
+        # Agrupa contando quantos alunos existem por Região e por Status
+        contagem_status = df_status_regiao.groupby(['regiao_nome_prova', 'Status']).size().reset_index(name='Quantidade de Alunos')
+        contagem_status.rename(columns={'regiao_nome_prova': 'Região'}, inplace=True)
+        
+        if len(contagem_status) > 0:
+            # Calcula a porcentagem do Status DENTRO de cada Região
+            total_por_regiao = contagem_status.groupby('Região')['Quantidade de Alunos'].transform('sum')
+            contagem_status['Texto'] = contagem_status['Quantidade de Alunos'].astype(str) + " (" + (contagem_status['Quantidade de Alunos'] / total_por_regiao * 100).round(1).astype(str) + "%)"
             
-            total_regiao = contagem_regiao['Quantidade de Alunos'].sum()
-            contagem_regiao['Texto'] = contagem_regiao['Quantidade de Alunos'].astype(str) + " (" + (contagem_regiao['Quantidade de Alunos'] / total_regiao * 100).round(1).astype(str) + "%)"
+            # Gera o gráfico de barras empilhadas (barmode='stack')
+            fig_regioes = px.bar(contagem_status, x='Região', y='Quantidade de Alunos', 
+                                 color='Status', text='Texto', barmode='stack',
+                                 title=f"Total de Alunos e Desempenho Médio em {materia_estado} por Região",
+                                 color_discrete_map={'Acima da Média': '#4B8BBE', 'Abaixo/Na Média': '#26466D'}) # Cores distintas para facilitar visualização
             
-            fig_regioes = px.bar(contagem_regiao, x='Região', y='Quantidade de Alunos', 
-                                 text='Texto', color='Região', 
-                                 title=f"Qtd. de Alunos acima da média em {materia_estado}")
             fig_regioes.update_traces(textposition='inside', textfont_size=12)
-            st.plotly_chart(fig_regioes, use_container_width=True, key="bar_regioes")
-        else:
-            st.warning("Nenhum aluno atingiu notas acima da média com a configuração atual.")
+            st.plotly_chart(fig_regioes, use_container_width=True, key="bar_regioes_stacked")
+            
+    else:
+        st.warning("Sem dados para a análise estadual. Ajuste os filtros globais.")
             
     else:
         st.warning("Sem dados para a análise estadual. Ajuste os filtros globais.")
