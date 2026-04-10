@@ -150,17 +150,36 @@ with tab_geral:
         kpi3.metric("Maior Média Registrada", "N/A")
     
     st.markdown("---")
+    st.subheader("Análise por Perfil da Escola")
     
-    # O gráfico agora ocupa a tela toda (tabela foi para a nova aba)
-    st.subheader("Média por Tipo de Escola")
     if len(df_filtrado_global) > 0:
-        media_escola = df_filtrado_global.groupby('tp_dependencia_adm_esc')['nota_media_5_notas'].mean().reset_index()
-        fig_escola = px.bar(media_escola, x='tp_dependencia_adm_esc', y='nota_media_5_notas', 
-                            color_discrete_sequence=['#26466D'], text_auto='.1f',
-                            labels={'tp_dependencia_adm_esc': 'Tipo de Escola', 'nota_media_5_notas': 'Nota Média'})
-        st.plotly_chart(fig_escola, use_container_width=True)
+        # Criando duas colunas para colocar os dois gráficos lado a lado
+        col_geral_1, col_geral_2 = st.columns(2)
+        
+        with col_geral_1:
+            media_escola = df_filtrado_global.groupby('tp_dependencia_adm_esc')['nota_media_5_notas'].mean().reset_index()
+            fig_escola = px.bar(media_escola, x='tp_dependencia_adm_esc', y='nota_media_5_notas', 
+                                title="Média Geral por Tipo de Escola",
+                                color_discrete_sequence=['#26466D'], text_auto='.1f',
+                                labels={'tp_dependencia_adm_esc': 'Tipo de Escola', 'nota_media_5_notas': 'Nota Média'})
+            st.plotly_chart(fig_escola, use_container_width=True)
+            
+        with col_geral_2:
+            # Novo gráfico: Localização (Urbana/Rural)
+            df_loc = df_filtrado_global.copy()
+            # Tratamento caso haja valores vazios na localização
+            df_loc['tp_localizacao_esc'] = df_loc['tp_localizacao_esc'].fillna('Não Informado')
+            
+            contagem_loc = df_loc['tp_localizacao_esc'].value_counts().reset_index()
+            contagem_loc.columns = ['Localização', 'Quantidade de Alunos']
+            
+            fig_loc = px.bar(contagem_loc, x='Localização', y='Quantidade de Alunos', 
+                             title="Quantidade de Alunos por Localização",
+                             color_discrete_sequence=['#4B8BBE'], text_auto=True)
+            st.plotly_chart(fig_loc, use_container_width=True)
+            
     else:
-        st.warning("Sem dados para exibir o gráfico.")
+        st.warning("Sem dados para exibir os gráficos.")
 
     st.markdown("---")
     
