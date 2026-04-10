@@ -153,7 +153,6 @@ with tab_geral:
     st.subheader("Análise por Perfil da Escola")
     
     if len(df_filtrado_global) > 0:
-        # Criando TRÊS colunas para acomodar o novo gráfico
         col_geral_1, col_geral_2, col_geral_3 = st.columns(3)
         
         with col_geral_1:
@@ -165,26 +164,36 @@ with tab_geral:
             st.plotly_chart(fig_escola, use_container_width=True)
             
         with col_geral_2:
-            # NOVO GRÁFICO: Contagem por Tipo de Escola
+            # Gráfico com Porcentagem: Tipo de Escola
             contagem_tipo_esc = df_filtrado_global['tp_dependencia_adm_esc'].value_counts().reset_index()
             contagem_tipo_esc.columns = ['Tipo de Escola', 'Quantidade de Alunos']
             
+            # Cálculo da porcentagem
+            total_esc = contagem_tipo_esc['Quantidade de Alunos'].sum()
+            contagem_tipo_esc['Texto'] = contagem_tipo_esc['Quantidade de Alunos'].astype(str) + " (" + (contagem_tipo_esc['Quantidade de Alunos'] / total_esc * 100).round(1).astype(str) + "%)"
+            
             fig_contagem_esc = px.bar(contagem_tipo_esc, x='Tipo de Escola', y='Quantidade de Alunos', 
-                                      title="Qtd. Alunos por Escola",
-                                      color_discrete_sequence=['#D9383A'], text_auto=True)
+                                      title="Qtd. Alunos por Escola", text='Texto',
+                                      color_discrete_sequence=['#D9383A'])
+            fig_contagem_esc.update_traces(textposition='inside', textfont_size=12)
             st.plotly_chart(fig_contagem_esc, use_container_width=True)
 
         with col_geral_3:
-            # Gráfico: Localização (Urbana/Rural)
+            # Gráfico com Porcentagem: Localização (Urbana/Rural)
             df_loc = df_filtrado_global.copy()
             df_loc['tp_localizacao_esc'] = df_loc['tp_localizacao_esc'].fillna('Não Informado')
             
             contagem_loc = df_loc['tp_localizacao_esc'].value_counts().reset_index()
             contagem_loc.columns = ['Localização', 'Quantidade de Alunos']
             
+            # Cálculo da porcentagem
+            total_loc = contagem_loc['Quantidade de Alunos'].sum()
+            contagem_loc['Texto'] = contagem_loc['Quantidade de Alunos'].astype(str) + " (" + (contagem_loc['Quantidade de Alunos'] / total_loc * 100).round(1).astype(str) + "%)"
+            
             fig_loc = px.bar(contagem_loc, x='Localização', y='Quantidade de Alunos', 
-                             title="Qtd. Alunos por Localização",
-                             color_discrete_sequence=['#4B8BBE'], text_auto=True)
+                             title="Qtd. Alunos por Localização", text='Texto',
+                             color_discrete_sequence=['#4B8BBE'])
+            fig_loc.update_traces(textposition='inside', textfont_size=12)
             st.plotly_chart(fig_loc, use_container_width=True)
             
     else:
