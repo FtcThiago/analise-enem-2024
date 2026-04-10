@@ -264,7 +264,6 @@ with tab_estados:
     st.header("Análise Geográfica e Desempenho Regional")
     
     if len(df_filtrado_global) > 0:
-        # Gera a tabela completa para dividir nas colunas
         tabela_frequencia_completa = gerar_tabela_frequencia(df_filtrado_global)
         
         col_top, col_bottom = st.columns(2)
@@ -279,26 +278,27 @@ with tab_estados:
             
         st.markdown("---")
         
-        # Filtro interno para o gráfico de Regiões
         st.subheader("Desempenho Acima da Média por Região")
         materia_estado = st.selectbox("Selecione a matéria para analisar os destaques regionais:", 
                                       list(dicionario_notas.keys()), key="filtro_estado")
         col_estado_alvo = dicionario_notas[materia_estado]
         
-        # Calcula a média da matéria escolhida baseada nos filtros atuais
         media_atual = df_filtrado_global[col_estado_alvo].mean()
         st.info(f"A média atual de **{materia_estado}** (considerando os filtros globais) é de **{media_atual:.1f}** pontos.")
         
-        # Filtra quem está acima da média e agrupa por região
         df_acima_media = df_filtrado_global[df_filtrado_global[col_estado_alvo] > media_atual]
         
         if len(df_acima_media) > 0:
             contagem_regiao = df_acima_media['regiao_nome_prova'].value_counts().reset_index()
             contagem_regiao.columns = ['Região', 'Quantidade de Alunos']
             
+            total_regiao = contagem_regiao['Quantidade de Alunos'].sum()
+            contagem_regiao['Texto'] = contagem_regiao['Quantidade de Alunos'].astype(str) + " (" + (contagem_regiao['Quantidade de Alunos'] / total_regiao * 100).round(1).astype(str) + "%)"
+            
             fig_regioes = px.bar(contagem_regiao, x='Região', y='Quantidade de Alunos', 
-                                 text_auto=True, color='Região', 
+                                 text='Texto', color='Região', 
                                  title=f"Qtd. de Alunos acima da média em {materia_estado}")
+            fig_regioes.update_traces(textposition='inside', textfont_size=12)
             st.plotly_chart(fig_regioes, use_container_width=True, key="bar_regioes")
         else:
             st.warning("Nenhum aluno atingiu notas acima da média com a configuração atual.")
